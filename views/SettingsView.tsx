@@ -1,14 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AppConfig, UserRole } from '../types';
+import { useTranslation } from '../App';
 
 interface SettingsViewProps {
   appConfig: AppConfig;
   setAppConfig: (config: AppConfig) => void;
+  fullData: any;
+  onImport: (json: string) => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ appConfig, setAppConfig }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'branding' | 'forms' | 'permissions'>('branding');
+const SettingsView: React.FC<SettingsViewProps> = ({ appConfig, setAppConfig, fullData, onImport }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'branding' | 'forms' | 'permissions' | 'data'>('branding');
+  const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const roles = Object.values(UserRole);
   const tabs = ['dashboard', 'lmra', 'nok', 'kickoff', 'library', 'profile', 'users', 'settings'];
@@ -46,6 +51,34 @@ const SettingsView: React.FC<SettingsViewProps> = ({ appConfig, setAppConfig }) 
     setAppConfig({ ...appConfig, [key]: [...appConfig[key], 'Nieuwe item'] });
   };
 
+  const exportDatabase = () => {
+    const db = {
+      ...fullData,
+      appConfig,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `VCA_BEL_Database_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (confirm("Weet u zeker dat u de huidige database wilt overschrijven met dit bestand?")) {
+          onImport(content);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -53,14 +86,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ appConfig, setAppConfig }) 
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter italic">ADMIN PANEL</h1>
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Systeem Configuraties & Permissies</p>
         </div>
-        <div className="flex bg-slate-200 p-1 rounded-2xl">
-          {(['branding', 'forms', 'permissions'] as const).map(tab => (
+        <div className="flex bg-slate-200 p-1 rounded-2xl overflow-x-auto no-scrollbar">
+          {(['branding', 'forms', 'permissions', 'data'] as const).map(tab => (
             <button 
               key={tab} 
               onClick={() => setActiveSubTab(tab)}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
             >
-              {tab}
+              {tab === 'data' ? t('data_sync') : tab}
             </button>
           ))}
         </div>
@@ -161,6 +194,64 @@ const SettingsView: React.FC<SettingsViewProps> = ({ appConfig, setAppConfig }) 
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {activeSubTab === 'data' && (
+          <div className="max-w-3xl space-y-10">
+            <div className="bg-orange-50 border border-orange-100 p-6 rounded-3xl">
+              <div className="flex gap-4">
+                <span className="text-2xl">⚠️</span>
+                <p className="text-xs font-bold text-orange-700 leading-relaxed">
+                  {t('local_storage_warning')}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-black text-slate-800 mb-2 uppercase tracking-tight italic">Exporteer Gegevens</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-6">Backup maken of data delen</p>
+                </div>
+                <button 
+                  onClick={exportDatabase}
+                  className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-slate-800 transition-all uppercase tracking-widest text-[10px]"
+                >
+                  🚀 {t('export_db')}
+                </button>
+              </div>
+
+              <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-black text-slate-800 mb-2 uppercase tracking-tight italic">Importeer Gegevens</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-6">Database laden vanuit bestand</p>
+                </div>
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  className="hidden" 
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-orange-500 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-orange-600 transition-all uppercase tracking-widest text-[10px]"
+                >
+                  📥 {t('import_db')}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-8 border-2 border-dashed border-slate-100 rounded-[2rem]">
+               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Hoe synchroniseren met collega's?</h4>
+               <ol className="text-xs text-slate-500 font-bold space-y-2 list-decimal ml-4">
+                 <li>Klik op "Exporteer Database" op jouw toestel.</li>
+                 <li>Stuur het gedownloade .json bestand naar je collega.</li>
+                 <li>Je collega klikt op "Importeer Database" en selecteert het bestand.</li>
+                 <li>Beide toestellen hebben nu exact dezelfde gebruikers en verslagen.</li>
+               </ol>
+            </div>
           </div>
         )}
       </div>

@@ -49,6 +49,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeTab, setActiveTab,
           <img src={appConfig.logoUrl} alt="Logo" className="w-12 h-12 mb-4 object-contain" />
           <h1 className="text-2xl font-black text-orange-500 tracking-tighter italic">{appConfig.appName}</h1>
           <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-[0.2em] font-black">{t('veiligheid_eerst')}</p>
+          
+          <div className="mt-4 flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 group cursor-help">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lokaal Prototype</span>
+          </div>
         </div>
 
         <nav className="flex-1 mt-4 px-4 space-y-1 overflow-y-auto">

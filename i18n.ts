@@ -90,7 +90,11 @@ export const translations = {
     assigned_to: 'Toegewezen aan',
     resolved_by: 'Behandeld door',
     treatment_notes: 'Genomen maatregelen',
-    vrijgave_title: 'Vrijgave & Maatregelen'
+    vrijgave_title: 'Vrijgave & Maatregelen',
+    data_sync: 'Data & Synchronisatie',
+    export_db: 'Exporteer Database',
+    import_db: 'Importeer Database',
+    local_storage_warning: 'Let op: Gegevens worden momenteel lokaal in uw browser opgeslagen. Gebruik de export/import functie om gegevens te delen met collega\'s.'
   },
   fr: {
     app_title: 'VCA BEL',
@@ -156,7 +160,11 @@ export const translations = {
     assigned_to: 'Attribué à',
     resolved_by: 'Traité par',
     treatment_notes: 'Mesures prises',
-    vrijgave_title: 'Libération & Mesures'
+    vrijgave_title: 'Libération & Mesures',
+    data_sync: 'Données & Synchro',
+    export_db: 'Exporter Database',
+    import_db: 'Importer Database',
+    local_storage_warning: 'Attention: Les données sont stockées localement. Utilisez l\'export pour partager avec vos collègues.'
   },
   en: {
     app_title: 'VCA BEL',
@@ -221,7 +229,11 @@ export const translations = {
     assigned_to: 'Assigned to',
     resolved_by: 'Resolved by',
     treatment_notes: 'Actions taken',
-    vrijgave_title: 'Release & Actions'
+    vrijgave_title: 'Release & Actions',
+    data_sync: 'Data & Sync',
+    export_db: 'Export Database',
+    import_db: 'Import Database',
+    local_storage_warning: 'Note: Data is currently stored locally in your browser. Use export/import to share data with colleagues.'
   },
   tr: {
     app_title: 'VCA BEL',
@@ -286,7 +298,11 @@ export const translations = {
     assigned_to: 'Atandı',
     resolved_by: 'Çözüldü',
     treatment_notes: 'Alınan önlemler',
-    vrijgave_title: 'Serbest Bırakma & Önlemler'
+    vrijgave_title: 'Serbest Bırakma & Önlemler',
+    data_sync: 'Veri & Senkronizasyon',
+    export_db: 'Veritabanını Dışa Aktar',
+    import_db: 'Veritabanını İçe Aktar',
+    local_storage_warning: 'Not: Veriler tarayıcınızda yerel olarak saklanmaktadır. Meslektaşlarınızla paylaşmak için dışa aktar/içe aktar işlevini kullanın.'
   }
 };
 

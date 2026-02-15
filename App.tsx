@@ -123,9 +123,6 @@ const App: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [newPass, setNewPass] = useState('');
-  const [confirmPass, setConfirmPass] = useState('');
-  const [passError, setPassError] = useState('');
 
   const addLMRA = (newLMRA: LMRA) => {
     setLmras(prev => [newLMRA, ...prev]);
@@ -145,7 +142,6 @@ const App: React.FC = () => {
 
   const updateLMRA = (updatedLMRA: LMRA) => {
     setLmras(prev => prev.map(l => l.id === updatedLMRA.id ? updatedLMRA : l));
-    // Als een NOK is opgelost, markeer gerelateerde notificaties als gelezen
     if (updatedLMRA.status === LMRAStatus.RESOLVED) {
       setNotifications(prev => prev.map(n => n.relatedId === updatedLMRA.id ? { ...n, isRead: true } : n));
     }
@@ -157,6 +153,21 @@ const App: React.FC = () => {
 
   const updateKickoff = (updatedKO: KickOffMeeting) => setKickoffs(prev => prev.map(k => k.id === updatedKO.id ? updatedKO : k));
   const addKickOff = (ko: KickOffMeeting) => setKickoffs(prev => [ko, ...prev]);
+
+  // Data Sync Functions
+  const importFullDatabase = (json: string) => {
+    try {
+      const data = JSON.parse(json);
+      if (data.users) setUsers(data.users);
+      if (data.lmras) setLmras(data.lmras);
+      if (data.kickoffs) setKickoffs(data.kickoffs);
+      if (data.appConfig) setAppConfig(data.appConfig);
+      if (data.notifications) setNotifications(data.notifications);
+      alert("Database succesvol geïmporteerd!");
+    } catch (e) {
+      alert("Fout bij importeren: Ongeldig bestand.");
+    }
+  };
 
   const contextValue = { lang, setLang, t };
 
@@ -204,7 +215,7 @@ const App: React.FC = () => {
           {activeTab === 'library' && <LibraryView />}
           {activeTab === 'profile' && <ProfileView currentUser={currentUser} users={users} onUpdateUser={updateUser} />}
           {activeTab === 'users' && <UserManagement users={users} setUsers={setUsers} />}
-          {activeTab === 'settings' && <SettingsView appConfig={appConfig} setAppConfig={setAppConfig} />}
+          {activeTab === 'settings' && <SettingsView appConfig={appConfig} setAppConfig={setAppConfig} fullData={{users, lmras, kickoffs, notifications}} onImport={importFullDatabase} />}
         </main>
       </div>
     </LanguageContext.Provider>
