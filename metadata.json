@@ -1,0 +1,8 @@
+{
+  "name": "VCA BEL - Veiligheid Eerst",
+  "description": "Een professionele VCA-applicatie voor LMRA's, Startwerken (Kick-off) en veiligheidsbeheer met uitgebreide rechtenstructuur en NOK-afhandeling.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
