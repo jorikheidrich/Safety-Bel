@@ -12,11 +12,12 @@ interface SidebarProps {
   unreadNotifications?: number;
   workspaceId?: string;
   isSyncing?: boolean;
+  isOffline?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
   currentUser, activeTab, setActiveTab, onLogout, appConfig, 
-  unreadNotifications = 0, workspaceId, isSyncing 
+  unreadNotifications = 0, workspaceId, isSyncing, isOffline 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { lang, setLang, t } = useTranslation();
@@ -55,10 +56,21 @@ const Sidebar: React.FC<SidebarProps> = ({
           <h1 className="text-2xl font-black text-orange-500 tracking-tighter italic">{appConfig.appName}</h1>
           <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-[0.2em] font-black">{t('veiligheid_eerst')}</p>
           
-          <div className={`mt-4 flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 group cursor-help transition-all ${workspaceId ? 'bg-green-500/10 border-green-500/20' : 'bg-white/5'}`}>
-            <span className={`w-2 h-2 rounded-full ${workspaceId ? 'bg-green-500 animate-pulse' : 'bg-orange-500 animate-pulse'}`}></span>
-            <span className={`text-[9px] font-black uppercase tracking-widest ${workspaceId ? 'text-green-500' : 'text-slate-400'}`}>
-              {workspaceId ? (isSyncing ? t('workspace_syncing') : 'LIVE GEKOPPELD') : 'LOKAAL PROTOTYPE'}
+          <div className={`mt-4 flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+            isOffline ? 'bg-orange-500/10 border-orange-500/20' : 
+            workspaceId ? 'bg-green-500/10 border-green-500/20' : 'bg-white/5'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${
+              isOffline ? 'bg-orange-500 animate-pulse' :
+              workspaceId ? 'bg-green-500 ' + (isSyncing ? 'animate-pulse' : '') : 'bg-slate-500'
+            }`}></span>
+            <span className={`text-[9px] font-black uppercase tracking-widest ${
+              isOffline ? 'text-orange-500' :
+              workspaceId ? 'text-green-500' : 'text-slate-400'
+            }`}>
+              {isOffline ? 'VERBINDINGSFOUT' : 
+               workspaceId ? (isSyncing ? 'SYNCHRONISEREN...' : 'LIVE GEKOPPELD') : 
+               'LOKAAL PROTOTYPE'}
             </span>
           </div>
         </div>

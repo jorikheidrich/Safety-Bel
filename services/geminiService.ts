@@ -73,7 +73,8 @@ export async function getSafetyAdvice(context: string) {
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // Correct initialization using process.env.API_KEY directly.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Geef kort, krachtig en professioneel veiligheidsadvies (max 30 woorden) voor: ${context}. Focus op VCA normen.`,
@@ -96,7 +97,8 @@ export async function searchSafetyLibrary(query: string) {
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // Correct initialization using process.env.API_KEY directly.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `De gebruiker zoekt naar: "${query}" in een VCA veiligheidscatalogus. Geef 3 concrete veiligheidstips.`,

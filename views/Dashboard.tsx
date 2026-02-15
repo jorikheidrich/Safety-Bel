@@ -13,80 +13,14 @@ interface DashboardProps {
   onUpdateKickoff: (ko: KickOffMeeting) => void;
   unreadNotifications?: Notification[];
   setActiveTab: (tab: string) => void;
+  lastSync?: number;
+  isSyncing?: boolean;
 }
 
-const SignatureModal: React.FC<{ 
-  onSave: (dataUrl: string) => void, 
-  onClose: () => void,
-  personName: string
-}> = ({ onSave, onClose, personName }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-      }
-    }
-  }, []);
-
-  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    setIsDrawing(true);
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (canvas && ctx) {
-      const rect = canvas.getBoundingClientRect();
-      const x = ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left;
-      const y = ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    }
-  };
-
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (canvas && ctx) {
-      const rect = canvas.getBoundingClientRect();
-      const x = ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left;
-      const y = ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top;
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    }
-  };
-
-  const save = () => { if (canvasRef.current) onSave(canvasRef.current.toDataURL()); };
-
-  return (
-    <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95">
-        <h3 className="text-xl font-black mb-1 uppercase tracking-tight">{t('sign')}</h3>
-        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">{personName}</p>
-        <canvas
-          ref={canvasRef}
-          width={400} height={200}
-          className="w-full h-48 border-2 border-slate-100 rounded-[2rem] bg-slate-50 touch-none cursor-crosshair"
-          onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={() => setIsDrawing(false)}
-          onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={() => setIsDrawing(false)}
-        />
-        <div className="grid grid-cols-2 gap-4 mt-10">
-          <button onClick={onClose} className="py-4 font-black uppercase text-xs text-slate-400">{t('cancel')}</button>
-          <button onClick={save} className="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-xl">{t('confirm_signature')}</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const Dashboard: React.FC<DashboardProps> = ({ lmras, kickoffs, currentUser, onUpdateLMRA, onUpdateKickoff, unreadNotifications = [], setActiveTab }) => {
-  const [signingLmra, setSigningLmra] = useState<LMRA | null>(null);
+const Dashboard: React.FC<DashboardProps> = ({ 
+  lmras, kickoffs, currentUser, onUpdateLMRA, onUpdateKickoff, 
+  unreadNotifications = [], setActiveTab, lastSync, isSyncing 
+}) => {
   const [dailyTip, setDailyTip] = useState('Draag altijd je PBM\'s op de werf.');
   const { t } = useTranslation();
   
@@ -97,7 +31,6 @@ const Dashboard: React.FC<DashboardProps> = ({ lmras, kickoffs, currentUser, onU
   const safetyScore = useMemo(() => {
     const myReports = lmras.filter(l => l.userId === currentUser.id);
     if (myReports.length === 0) return 100;
-    // Een score is positief als de LMRA direct OK was OF als de NOK is opgelost (RESOLVED)
     const safeCount = myReports.filter(r => r.status === LMRAStatus.OK || r.status === LMRAStatus.RESOLVED).length;
     return Math.round((safeCount / myReports.length) * 100);
   }, [lmras, currentUser]);
@@ -106,32 +39,20 @@ const Dashboard: React.FC<DashboardProps> = ({ lmras, kickoffs, currentUser, onU
     getSafetyAdvice("Algemeen dagelijks advies voor een technieker op de werf").then(tip => setDailyTip(tip));
   }, []);
 
-  const handleSaveSignature = (dataUrl: string) => {
-    if (signingLmra) {
-      const updatedAttendees = signingLmra.attendees.map(a => 
-        a.userId === currentUser.id ? { ...a, signature: dataUrl, isSigned: true } : a
-      );
-      
-      const isNOK = signingLmra.questions.some(q => q.answer === 'NOK');
-      const allSigned = updatedAttendees.every(a => a.isSigned);
-
-      onUpdateLMRA({
-        ...signingLmra,
-        attendees: updatedAttendees,
-        status: allSigned ? (isNOK ? LMRAStatus.NOK : LMRAStatus.OK) : LMRAStatus.PENDING_SIGNATURE
-      });
-      setSigningLmra(null);
-    }
-  };
-
-  const showNOKAlert = (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.PREVENTIE_ADVISEUR || currentUser.role === UserRole.WERFLEIDER) && unreadNotifications.length > 0;
+  const showNOKAlert = (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.WERFLEIDER) && unreadNotifications.length > 0;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tighter italic">{t('welcome')}, {currentUser.name}</h1>
-          <p className="text-slate-500 font-bold italic text-sm">{t('safety_quote')}</p>
+          <div className="flex items-center gap-3 mt-1">
+             <p className="text-slate-500 font-bold italic text-sm">{t('safety_quote')}</p>
+             <div className="flex items-center gap-2 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                <span className={`w-1.5 h-1.5 rounded-full bg-green-500 ${isSyncing ? 'animate-ping' : ''}`}></span>
+                <span className="text-[8px] font-black text-green-700 uppercase tracking-widest">Live: {lastSync ? new Date(lastSync).toLocaleTimeString() : '-'}</span>
+             </div>
+          </div>
         </div>
         <div className="flex items-center space-x-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
            <div className="text-right">
@@ -143,12 +64,12 @@ const Dashboard: React.FC<DashboardProps> = ({ lmras, kickoffs, currentUser, onU
       </div>
 
       {showNOKAlert && (
-        <div className="bg-red-500 text-white p-6 rounded-[2.5rem] shadow-2xl animate-bounce flex items-center justify-between">
+        <div className="bg-red-500 text-white p-6 rounded-[2.5rem] shadow-2xl animate-pulse flex items-center justify-between">
           <div className="flex items-center gap-4">
              <span className="text-3xl">⚠️</span>
              <div>
                <p className="font-black uppercase text-xs tracking-widest">Dringende Aandacht Vereist</p>
-               <p className="font-bold text-sm">Er zijn {unreadNotifications.length} nieuwe NOK meldingen die behandeld moeten worden.</p>
+               <p className="font-bold text-sm">Er zijn {unreadNotifications.length} nieuwe NOK meldingen.</p>
              </div>
           </div>
           <button 
@@ -170,38 +91,6 @@ const Dashboard: React.FC<DashboardProps> = ({ lmras, kickoffs, currentUser, onU
            </div>
         </div>
       </div>
-
-      {pendingLmras.length > 0 && (
-        <div className="bg-orange-50 border-2 border-orange-200 p-8 rounded-[2.5rem] shadow-xl shadow-orange-500/10">
-          <h2 className="text-lg font-black text-orange-700 flex items-center mb-6 uppercase tracking-widest">
-            <span className="mr-3 text-2xl">✍️</span> {t('open_signatures')}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pendingLmras.map(l => (
-              <div key={l.id} className="bg-white p-5 rounded-3xl shadow-sm flex justify-between items-center border border-orange-100 hover:border-orange-500 transition-all">
-                <div>
-                  <p className="font-black text-slate-800">{l.title}</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">LMRA • {l.date}</p>
-                </div>
-                <button 
-                  onClick={() => setSigningLmra(l)}
-                  className="bg-orange-500 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg"
-                >
-                  {t('sign')}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {signingLmra && (
-        <SignatureModal 
-          personName={currentUser.name} 
-          onClose={() => setSigningLmra(null)} 
-          onSave={handleSaveSignature} 
-        />
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
