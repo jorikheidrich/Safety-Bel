@@ -1,8 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 const CACHE_KEY = 'vca_ai_cache';
@@ -17,7 +15,7 @@ const STATIC_ADVICE = [
   "Controleer elektrisch gereedschap op beschadigingen voor gebruik.",
   "Houd de werkplek schoon en georganiseerd om struikelgevaar te beperken.",
   "Gebruik de juiste ladder of trap voor de hoogte die je moet bereiken.",
-  "Zorg voor voldoende verlichting op de werkplek voor een veilig overzicht."
+  "Zorg voor voldoende verlichting op de werf."
 ];
 
 const getCache = (): Record<string, { response: string, timestamp: number }> => {
@@ -37,19 +35,13 @@ const checkCooldown = (): boolean => {
   const cooldown = localStorage.getItem(COOLDOWN_KEY);
   if (!cooldown) return false;
   const timestamp = parseInt(cooldown);
-  if (Date.now() - timestamp < COOLDOWN_DURATION) {
-    return true; // Still in cooldown
-  }
-  return false;
+  return (Date.now() - timestamp < COOLDOWN_DURATION);
 };
 
 const setCooldown = () => {
   localStorage.setItem(COOLDOWN_KEY, Date.now().toString());
 };
 
-/**
- * A helper function to retry API calls with exponential backoff on rate limits (429).
- */
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, backoff = 2000): Promise<T> {
   if (checkCooldown()) {
     throw new Error("API_COOLDOWN_ACTIVE");
@@ -59,12 +51,11 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2, backoff = 2000): 
     return await fn();
   } catch (error: any) {
     const errorMsg = error.message?.toLowerCase() || "";
-    const isQuotaError = error.status === 429 || errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('exhausted');
+    const isQuotaError = error.status === 429 || errorMsg.includes('429') || errorMsg.includes('quota');
     
     if (isQuotaError) {
       setCooldown();
       if (retries > 0) {
-        console.warn(`AI Quota limit hit, retrying in ${backoff}ms...`);
         await delay(backoff);
         return withRetry(fn, retries - 1, backoff * 2);
       }
@@ -82,6 +73,7 @@ export async function getSafetyAdvice(context: string) {
   }
 
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Geef kort, krachtig en professioneel veiligheidsadvies (max 30 woorden) voor: ${context}. Focus op VCA normen.`,
@@ -91,7 +83,6 @@ export async function getSafetyAdvice(context: string) {
     saveToCache(cacheKey, text);
     return text;
   } catch (error) {
-    // If cooldown is active or API failed, return random static advice
     return STATIC_ADVICE[Math.floor(Math.random() * STATIC_ADVICE.length)];
   }
 }
@@ -105,16 +96,17 @@ export async function searchSafetyLibrary(query: string) {
   }
 
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `De gebruiker zoekt naar: "${query}" in een VCA veiligheidscatalogus. Geef 3 concrete veiligheidstips.`,
       config: { thinkingConfig: { thinkingBudget: 0 } }
     }));
     
-    const text = response.text || "VCA Tip: Controleer altijd de staat van je persoonlijke beschermingsmiddelen (PBM's) voor gebruik.";
+    const text = response.text || "VCA Tip: Controleer altijd je PBM's voor gebruik.";
     saveToCache(cacheKey, text);
     return text;
   } catch (error) {
-    return "VCA Tip: Zorg voor een opgeruimde werkplek om struikelgevaar te voorkomen. Controleer elektrische kabels op beschadigingen voor gebruik.";
+    return "VCA Tip: Zorg voor een opgeruimde werkplek om struikelgevaar te voorkomen.";
   }
 }
