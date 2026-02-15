@@ -135,9 +135,9 @@ function saveData(sheet, id, data) {
                   <h4 className="text-orange-500 font-black uppercase text-[10px] tracking-widest">Stappenplan</h4>
                   <ol className="text-[11px] space-y-3 font-bold text-slate-300">
                     <li className="flex gap-3"><span className="text-orange-500">1.</span> Open een Google Sheet.</li>
-                    <li className="flex gap-3"><span className="text-orange-500">2.</span> Klik op "Extensies" -> "Apps Script".</li>
+                    <li className="flex gap-3"><span className="text-orange-500">2.</span> Klik op "Extensies" &rarr; "Apps Script".</li>
                     <li className="flex gap-3"><span className="text-orange-500">3.</span> Wis alles en plak de code hieronder.</li>
-                    <li className="flex gap-3"><span className="text-orange-500">4.</span> Klik op "Implementeren" -> "Nieuwe implementatie".</li>
+                    <li className="flex gap-3"><span className="text-orange-500">4.</span> Klik op "Implementeren" &rarr; "Nieuwe implementatie".</li>
                     <li className="flex gap-3"><span className="text-orange-500">5.</span> Type: Web-app, Toegang: "Iedereen".</li>
                     <li className="flex gap-3"><span className="text-orange-500">6.</span> Kopieer de link naar het vak hiernaast.</li>
                   </ol>

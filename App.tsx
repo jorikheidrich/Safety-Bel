@@ -29,6 +29,7 @@ export const useTranslation = () => {
   return context;
 };
 
+// De door de gebruiker opgegeven URL als standaard
 const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbym2zLU0CVImtKMYtKXUqlKRBwbvH8gOC5CvoumFWYR5X8poMBnIGtP7ggWA8gJ8pAx/exec';
 
 const App: React.FC = () => {
@@ -44,7 +45,11 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  const [sheetUrl, setSheetUrl] = useState<string>(localStorage.getItem('vca_sheet_url') || DEFAULT_SHEET_URL);
+  // Gebruik de default URL als er geen in localStorage staat
+  const [sheetUrl, setSheetUrl] = useState<string>(() => {
+    const saved = localStorage.getItem('vca_sheet_url');
+    return saved || DEFAULT_SHEET_URL;
+  });
   const [workspaceId, setWorkspaceId] = useState<string>(localStorage.getItem('vca_workspace_id') || 'vca-team-default');
   
   const [lastSync, setLastSync] = useState<number>(0);
@@ -232,6 +237,9 @@ const App: React.FC = () => {
                   {t('login_btn')}
                 </button>
                 {loginError && <p className="text-red-500 text-[10px] font-black text-center">{loginError}</p>}
+                <div className="text-center pt-4">
+                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">jorik / jorik</p>
+                </div>
               </form>
             )}
           </div>
