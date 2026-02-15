@@ -94,7 +94,15 @@ export const translations = {
     data_sync: 'Data & Synchronisatie',
     export_db: 'Exporteer Database',
     import_db: 'Importeer Database',
-    local_storage_warning: 'Let op: Gegevens worden momenteel lokaal in uw browser opgeslagen. Gebruik de export/import functie om gegevens te delen met collega\'s.'
+    local_storage_warning: 'Let op: Zonder Workspace Key wordt data alleen lokaal opgeslagen.',
+    workspace_title: 'Live Cloud Workspace',
+    workspace_desc: 'Koppel je app aan een gedeelde cloud om live samen te werken met collega\'s.',
+    workspace_key_label: 'Workspace ID / Sleutel',
+    workspace_connect: 'Verbinden & Synchroniseren',
+    workspace_connected: 'Live Verbinding Actief',
+    workspace_syncing: 'Bezig met synchroniseren...',
+    workspace_last_sync: 'Laatst gesynchroniseerd',
+    workspace_info: 'Geef deze ID aan je collega om dezelfde data te zien.'
   },
   fr: {
     app_title: 'VCA BEL',
@@ -164,7 +172,15 @@ export const translations = {
     data_sync: 'Données & Synchro',
     export_db: 'Exporter Database',
     import_db: 'Importer Database',
-    local_storage_warning: 'Attention: Les données sont stockées localement. Utilisez l\'export pour partager avec vos collègues.'
+    local_storage_warning: 'Attention: Sans Workspace Key, les données sont locales.',
+    workspace_title: 'Espace Cloud Live',
+    workspace_desc: 'Connectez votre application pour collaborer en direct.',
+    workspace_key_label: 'ID de l\'espace',
+    workspace_connect: 'Connecter & Synchroniser',
+    workspace_connected: 'Connexion Live Active',
+    workspace_syncing: 'Synchronisation...',
+    workspace_last_sync: 'Dernière synchro',
+    workspace_info: 'Partagez cet ID avec vos collègues.'
   },
   en: {
     app_title: 'VCA BEL',
@@ -233,7 +249,15 @@ export const translations = {
     data_sync: 'Data & Sync',
     export_db: 'Export Database',
     import_db: 'Import Database',
-    local_storage_warning: 'Note: Data is currently stored locally in your browser. Use export/import to share data with colleagues.'
+    local_storage_warning: 'Note: Without Workspace Key, data is local only.',
+    workspace_title: 'Live Cloud Workspace',
+    workspace_desc: 'Connect your app to collaborate in real-time.',
+    workspace_key_label: 'Workspace ID',
+    workspace_connect: 'Connect & Sync',
+    workspace_connected: 'Live Connection Active',
+    workspace_syncing: 'Syncing...',
+    workspace_last_sync: 'Last synced',
+    workspace_info: 'Share this ID with your colleagues.'
   },
   tr: {
     app_title: 'VCA BEL',
@@ -302,7 +326,15 @@ export const translations = {
     data_sync: 'Veri & Senkronizasyon',
     export_db: 'Veritabanını Dışa Aktar',
     import_db: 'Veritabanını İçe Aktar',
-    local_storage_warning: 'Not: Veriler tarayıcınızda yerel olarak saklanmaktadır. Meslektaşlarınızla paylaşmak için dışa aktar/içe aktar işlevini kullanın.'
+    local_storage_warning: 'Not: Çalışma Alanı Anahtarı olmadan veriler yereldir.',
+    workspace_title: 'Canlı Bulut Çalışma Alanı',
+    workspace_desc: 'Gerçek zamanlı işbirliği için uygulamanızı bağlayın.',
+    workspace_key_label: 'Çalışma Alanı Kimliği',
+    workspace_connect: 'Bağlan ve Senkronize Et',
+    workspace_connected: 'Canlı Bağlantı Aktif',
+    workspace_syncing: 'Senkronize ediliyor...',
+    workspace_last_sync: 'Son senkronizasyon',
+    workspace_info: 'Bu kimliği meslektaşlarınızla paylaşın.'
   }
 };
 

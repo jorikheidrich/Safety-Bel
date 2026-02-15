@@ -10,9 +10,14 @@ interface SidebarProps {
   onLogout: () => void;
   appConfig: AppConfig;
   unreadNotifications?: number;
+  workspaceId?: string;
+  isSyncing?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeTab, setActiveTab, onLogout, appConfig, unreadNotifications = 0 }) => {
+const Sidebar: React.FC<SidebarProps> = ({ 
+  currentUser, activeTab, setActiveTab, onLogout, appConfig, 
+  unreadNotifications = 0, workspaceId, isSyncing 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const { lang, setLang, t } = useTranslation();
 
@@ -50,9 +55,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeTab, setActiveTab,
           <h1 className="text-2xl font-black text-orange-500 tracking-tighter italic">{appConfig.appName}</h1>
           <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-[0.2em] font-black">{t('veiligheid_eerst')}</p>
           
-          <div className="mt-4 flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 group cursor-help">
-            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lokaal Prototype</span>
+          <div className={`mt-4 flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 group cursor-help transition-all ${workspaceId ? 'bg-green-500/10 border-green-500/20' : 'bg-white/5'}`}>
+            <span className={`w-2 h-2 rounded-full ${workspaceId ? 'bg-green-500 animate-pulse' : 'bg-orange-500 animate-pulse'}`}></span>
+            <span className={`text-[9px] font-black uppercase tracking-widest ${workspaceId ? 'text-green-500' : 'text-slate-400'}`}>
+              {workspaceId ? (isSyncing ? t('workspace_syncing') : 'LIVE GEKOPPELD') : 'LOKAAL PROTOTYPE'}
+            </span>
           </div>
         </div>
 

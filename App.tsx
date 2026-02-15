@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { User, UserRole, LMRA, LMRAStatus, KickOffMeeting, Language, AppConfig, Notification } from './types';
 import { MOCK_USERS, DEFAULT_CONFIG } from './constants';
 import { translations, TranslationKeys } from './i18n';
+import { syncService, CloudData } from './services/syncService';
 import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
 import LMRAView from './views/LMRAView';
@@ -40,6 +41,9 @@ const App: React.FC = () => {
   });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [workspaceId, setWorkspaceId] = useState<string>(localStorage.getItem('vca_workspace_id') || '');
+  const [lastSync, setLastSync] = useState<number>(0);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const [lmras, setLmras] = useState<LMRA[]>(() => {
     const saved = localStorage.getItem('vca_lmras');
@@ -56,29 +60,95 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Helper om lokale data samen te voegen met cloud data
+  const mergeData = useCallback((cloud: CloudData) => {
+    // Gebruik unieke ID's om duplicaten te voorkomen
+    const mergeArrays = (local: any[], remote: any[]) => {
+      const map = new Map();
+      local.forEach(item => map.set(item.id, item));
+      remote.forEach(item => map.set(item.id, item));
+      return Array.from(map.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    };
+
+    setUsers(cloud.users);
+    setLmras(prev => mergeArrays(prev, cloud.lmras));
+    setKickoffs(prev => mergeArrays(prev, cloud.kickoffs));
+    setNotifications(prev => mergeArrays(prev, cloud.notifications));
+    setAppConfig(cloud.appConfig);
+    setLastSync(Date.now());
+  }, []);
+
+  // Sync naar de cloud
+  const pushToCloud = useCallback(async () => {
+    if (!workspaceId) return;
+    setIsSyncing(true);
+    try {
+      const data: CloudData = {
+        users, lmras, kickoffs, notifications, appConfig,
+        lastUpdated: Date.now()
+      };
+      await syncService.updateWorkspace(workspaceId, data);
+      setLastSync(Date.now());
+    } catch (e) {
+      console.error("Push failed", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [workspaceId, users, lmras, kickoffs, notifications, appConfig]);
+
+  // Sync van de cloud
+  const pullFromCloud = useCallback(async () => {
+    if (!workspaceId) return;
+    setIsSyncing(true);
+    try {
+      const cloud = await syncService.getWorkspace(workspaceId);
+      if (cloud && cloud.lastUpdated > lastSync) {
+        mergeData(cloud);
+      }
+    } catch (e) {
+      console.error("Pull failed", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [workspaceId, lastSync, mergeData]);
+
+  // Automatische synchronisatie (Polling)
+  useEffect(() => {
+    if (!workspaceId) return;
+    pullFromCloud(); // Directe sync bij start
+    const interval = setInterval(pullFromCloud, 15000); // Elke 15 seconden
+    return () => clearInterval(interval);
+  }, [workspaceId]); // Alleen herstarten als workspaceId verandert
+
+  // Effecten voor lokale opslag & automatische push bij wijziging
   useEffect(() => {
     localStorage.setItem('vca_lmras', JSON.stringify(lmras));
-  }, [lmras]);
+    pushToCloud();
+  }, [lmras, pushToCloud]);
 
   useEffect(() => {
     localStorage.setItem('vca_notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    pushToCloud();
+  }, [notifications, pushToCloud]);
 
   useEffect(() => {
     localStorage.setItem('vca_kickoffs', JSON.stringify(kickoffs));
-  }, [kickoffs]);
-
-  useEffect(() => {
-    localStorage.setItem('vca_lang', lang);
-  }, [lang]);
+    pushToCloud();
+  }, [kickoffs, pushToCloud]);
 
   useEffect(() => {
     localStorage.setItem('vca_users_list', JSON.stringify(users));
-  }, [users]);
+    pushToCloud();
+  }, [users, pushToCloud]);
 
   useEffect(() => {
     localStorage.setItem('vca_app_config', JSON.stringify(appConfig));
-  }, [appConfig]);
+    pushToCloud();
+  }, [appConfig, pushToCloud]);
+
+  useEffect(() => {
+    localStorage.setItem('vca_workspace_id', workspaceId);
+  }, [workspaceId]);
 
   const t = (key: TranslationKeys) => {
     return translations[lang][key] || key;
@@ -154,7 +224,6 @@ const App: React.FC = () => {
   const updateKickoff = (updatedKO: KickOffMeeting) => setKickoffs(prev => prev.map(k => k.id === updatedKO.id ? updatedKO : k));
   const addKickOff = (ko: KickOffMeeting) => setKickoffs(prev => [ko, ...prev]);
 
-  // Data Sync Functions
   const importFullDatabase = (json: string) => {
     try {
       const data = JSON.parse(json);
@@ -204,6 +273,8 @@ const App: React.FC = () => {
           onLogout={handleLogout}
           appConfig={appConfig}
           unreadNotifications={unreadCount}
+          workspaceId={workspaceId}
+          isSyncing={isSyncing}
         />
         
         <main className="flex-1 p-4 md:p-8 pt-20 lg:pt-8 w-full max-w-7xl mx-auto overflow-x-hidden">
@@ -215,7 +286,18 @@ const App: React.FC = () => {
           {activeTab === 'library' && <LibraryView />}
           {activeTab === 'profile' && <ProfileView currentUser={currentUser} users={users} onUpdateUser={updateUser} />}
           {activeTab === 'users' && <UserManagement users={users} setUsers={setUsers} />}
-          {activeTab === 'settings' && <SettingsView appConfig={appConfig} setAppConfig={setAppConfig} fullData={{users, lmras, kickoffs, notifications}} onImport={importFullDatabase} />}
+          {activeTab === 'settings' && (
+            <SettingsView 
+              appConfig={appConfig} 
+              setAppConfig={setAppConfig} 
+              fullData={{users, lmras, kickoffs, notifications}} 
+              onImport={importFullDatabase} 
+              workspaceId={workspaceId}
+              setWorkspaceId={setWorkspaceId}
+              lastSync={lastSync}
+              onManualSync={pullFromCloud}
+            />
+          )}
         </main>
       </div>
     </LanguageContext.Provider>
