@@ -69,7 +69,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers }) => {
     const finalData = {
       ...formData,
       password: finalPassword,
-      mustChangePassword: editingUser ? (editingUser.password !== finalPassword ? true : editingUser.mustChangePassword) : true
+      mustChangePassword: editingUser ? (editingUser.password !== finalPassword ? true : editingUser.mustChangePassword) : true,
+      timestamp: Date.now() // Altijd de timestamp bijwerken bij een submit
     };
 
     if (editingUser) {

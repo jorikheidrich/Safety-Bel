@@ -1,51 +1,68 @@
 
-import { UserRole, AppConfig, Department } from './types';
+import { UserRole, AppConfig, Department, User } from './types';
+
+export const MOCK_USERS: User[] = [
+  {
+    id: 'admin-1',
+    name: 'Jorik Belloy',
+    email: 'jorik@belloy.be',
+    username: 'jorik',
+    password: 'jorik',
+    role: UserRole.ADMIN,
+    department: Department.GENERAL,
+    isExternal: false,
+    timestamp: 1700000000000
+  }
+];
 
 export const DEFAULT_CONFIG: AppConfig = {
   appName: 'VCA BEL',
-  logoUrl: 'https://cdn-icons-png.flaticon.com/512/1162/1162456.png',
+  logoUrl: 'https://media.licdn.com/dms/image/v2/D4E3DAQHQk-ctWicDOw/image-scale_191_1128/image-scale_191_1128/0/1724226845992/belloy_elektrotechniek_cover?e=2147483647&v=beta&t=gqx4Q1vwSTAH8EbSBQATps6q1cLaAi1KksPRpvYxojw',
+  departments: ['TELECOM', 'LAAGSPANNING', 'MIDDENSPANNING', 'ALGEMEEN'],
   lmraQuestions: [
-    'Weet ik precies wat ik moet doen?',
-    'Zijn de risico\'s van de werkplek bekend?',
-    'Draag ik de juiste PBM\'s?',
-    'Is het gereedschap in goede staat?',
-    'Zijn vluchtwegen en nooduitgangen vrij?',
-    'Is er voldoende verlichting?',
-    'Ben ik fit en gezond om de taak uit te voeren?'
+    "Begrijp ik de taak en de risico's?",
+    "Zijn de nodige PBM's aanwezig en in goede staat?",
+    "Is de werkplek veilig en voldoende verlicht?",
+    "Is het gereedschap gekeurd en veilig?",
+    "Is er gevaar voor derden (omstaanders)?",
+    "Zijn alle vergunningen aanwezig?",
+    "Weet ik wat te doen bij een noodsituatie?"
   ],
   kickoffTopics: [
-    'LMRA procedures',
-    'Werfreglement',
-    'Noodplan',
-    'Specifieke risico\'s',
-    'PBM inspectie'
+    "Project scope en doelstellingen",
+    "Specifieke werfrisico's",
+    "PBM vereisten",
+    "Noodprocedures en EHBO",
+    "Milieuaspecten (afvalscheiding)",
+    "Communicatie op de werf"
   ],
-  departments: ['TELECOM', 'LAAGSPANNING', 'MIDDENSPANNING', 'ALGEMEEN'],
   permissions: {
-    // Admin has full access
     [UserRole.ADMIN]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings'],
-    // Preventieadviseur acts as a sub-admin
-    [UserRole.PREVENTIE_ADVISEUR]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings'],
-    // Moderator (Werfleider) now has FULL access as requested ("die alles kan")
-    [UserRole.WERFLEIDER]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings'],
-    // Management roles
-    [UserRole.PROJECT_MANAGER]: ['dashboard', 'lmra', 'kickoff', 'reports', 'profile'],
-    [UserRole.PROJECT_ASSISTENT]: ['dashboard', 'lmra', 'kickoff', 'profile'],
-    // Techniekers remain limited to operations
+    [UserRole.WERFLEIDER]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings'], // Moderator: everything
+    [UserRole.PREVENTIE_ADVISEUR]: ['dashboard', 'lmra', 'nok', 'reports', 'library', 'profile'],
+    [UserRole.PROJECT_MANAGER]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile'],
+    [UserRole.PROJECT_ASSISTENT]: ['dashboard', 'lmra', 'kickoff', 'library', 'profile'],
     [UserRole.TECHNIEKER]: ['dashboard', 'lmra', 'kickoff', 'library', 'profile']
   }
 };
 
-export const MOCK_USERS = [
-  { id: 'admin1', name: 'Jorik Admin', email: 'jorik@vcabel.be', username: 'jorik', password: 'jorik', role: UserRole.ADMIN, department: Department.GENERAL, isExternal: false },
-  { id: 'mod1', name: 'Werner Werf', email: 'werner@vcabel.be', username: 'moderator', password: 'password', role: UserRole.WERFLEIDER, department: Department.GENERAL, isExternal: false },
-  { id: 'pm1', name: 'Mark Manager', email: 'mark@projects.be', username: 'mark', password: 'mark', role: UserRole.PROJECT_MANAGER, department: Department.TELECOM, isExternal: false },
-  { id: 'ext1', name: 'John Extern', email: 'john@contractor.com', username: 'john', password: 'password', role: UserRole.TECHNIEKER, department: Department.LAAGSPANNING, isExternal: true },
-  { id: 'u1', name: 'Eddy Verhoeven', email: 'eddy@techniek.be', username: 'eddy', password: 'eddy', role: UserRole.TECHNIEKER, department: Department.LAAGSPANNING, isExternal: false }
-];
-
 export const SAFETY_DOCS = [
-  { id: '1', category: 'VCA', title: 'Basisveiligheid VCA', content: 'De algemene regels voor veiligheid op de werkvloer volgens de VCA-normen.' },
-  { id: '2', category: 'PBM', title: 'Gebruik van PBM', content: 'Wanneer en hoe je helm, schoenen en bril moet gebruiken.' },
-  { id: '3', category: 'LMRA', title: 'LMRA Procedure', content: 'Hoe voer je een correcte Last Minute Risico Analyse uit?' }
+  {
+    id: '1',
+    category: 'PBM',
+    title: 'Gebruik van Veiligheidshelmen',
+    content: 'Een veiligheidshelm is verplicht op elke werf waar risico bestaat op vallende voorwerpen. Vervang de helm na een zware klap of na de vervaldatum.'
+  },
+  {
+    id: '2',
+    category: 'ELEKTRO',
+    title: 'Werken aan Laagspanning',
+    content: 'Zorg voor spanningsloze toestand. Gebruik de 5 veiligheidsregels: Vrijschakelen, Beveiligen tegen herinschakelen, Spanningsloosheid controleren, Aarden en kortsluiten, Naastgelegen actieve delen afschermen.'
+  },
+  {
+    id: '3',
+    category: 'HOOGTE',
+    title: 'Ladderveiligheid',
+    content: 'Plaats ladders altijd onder een hoek van 75 graden. Gebruik ladders enkel voor kortstondig werk. Zorg dat de ladder minstens 1 meter boven het overstappunt uitsteekt.'
+  }
 ];

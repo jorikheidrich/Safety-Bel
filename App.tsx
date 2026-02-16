@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { User, UserRole, LMRA, LMRAStatus, KickOffMeeting, Language, AppConfig, Notification } from './types';
 import { MOCK_USERS, DEFAULT_CONFIG } from './constants';
 import { translations, TranslationKeys } from './i18n';
@@ -29,8 +29,7 @@ export const useTranslation = () => {
   return context;
 };
 
-// De door de gebruiker opgegeven URL als standaard
-const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbym2zLU0CVImtKMYtKXUqlKRBwbvH8gOC5CvoumFWYR5X8poMBnIGtP7ggWA8gJ8pAx/exec';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycby6UtGUDKBRHw8chQ8X8MUJB4QdMSMt7uPJxORZOJw0o7iL8Ca4i-GX9tjW5wQ9aeKe/exec';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>((localStorage.getItem('vca_lang') as Language) || 'nl');
@@ -45,7 +44,6 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Gebruik de default URL als er geen in localStorage staat
   const [sheetUrl, setSheetUrl] = useState<string>(() => {
     const saved = localStorage.getItem('vca_sheet_url');
     return saved || DEFAULT_SHEET_URL;
@@ -54,7 +52,7 @@ const App: React.FC = () => {
   
   const [lastSync, setLastSync] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [connError, setConnError] = useState('');
+  const [hasInitialPulled, setHasInitialPulled] = useState(false);
 
   const [lmras, setLmras] = useState<LMRA[]>(() => {
     const saved = localStorage.getItem('vca_lmras');
@@ -71,27 +69,62 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const mergeData = useCallback((cloud: CloudData) => {
-    if (!cloud) return;
-    
-    const mergeArrays = (local: any[], remote: any[]) => {
-      if (!remote) return local;
-      const map = new Map();
-      local.forEach(item => map.set(item.id, item));
-      remote.forEach(item => map.set(item.id, item));
-      return Array.from(map.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    };
+  const isUpdatingFromCloud = useRef(false);
 
-    if (cloud.users && cloud.users.length > 0) setUsers(cloud.users);
+  const mergeArrays = useCallback((local: any[], remote: any[]) => {
+    if (!remote) return local;
+    const map = new Map();
+    // Eerst lokale items in de map zetten
+    local.forEach(item => map.set(item.id, item));
+    // Remote items toevoegen/overschrijven ALLEEN als de timestamp nieuwer is of als het item lokaal ontbreekt
+    remote.forEach(remoteItem => {
+      const localItem = map.get(remoteItem.id);
+      if (!localItem || (remoteItem.timestamp || 0) > (localItem.timestamp || 0)) {
+        map.set(remoteItem.id, remoteItem);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }, []);
+
+  const mergeData = useCallback((cloud: CloudData) => {
+    if (!cloud) {
+      setHasInitialPulled(true);
+      return;
+    }
+    
+    isUpdatingFromCloud.current = true;
+    
+    // Cruciale wijziging: Gebruikerslijst samenvoegen i.p.v. overschrijven
+    if (cloud.users) setUsers(prev => mergeArrays(prev, cloud.users));
     if (cloud.lmras) setLmras(prev => mergeArrays(prev, cloud.lmras));
     if (cloud.kickoffs) setKickoffs(prev => mergeArrays(prev, cloud.kickoffs));
     if (cloud.notifications) setNotifications(prev => mergeArrays(prev, cloud.notifications));
     if (cloud.appConfig) setAppConfig(cloud.appConfig);
+    
     setLastSync(Date.now());
-  }, []);
+    setHasInitialPulled(true);
+    
+    setTimeout(() => {
+      isUpdatingFromCloud.current = false;
+    }, 1000);
+  }, [mergeArrays]);
+
+  const pullFromDatabase = useCallback(async () => {
+    if (!sheetUrl) return;
+    setIsSyncing(true);
+    try {
+      const cloud = await syncService.pullData(sheetUrl, workspaceId);
+      mergeData(cloud);
+    } catch (e) {
+      console.warn("Database pull mislukt.");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [sheetUrl, workspaceId, mergeData]);
 
   const pushToDatabase = useCallback(async () => {
-    if (!sheetUrl) return;
+    if (!sheetUrl || !hasInitialPulled || isUpdatingFromCloud.current) return;
+    
     setIsSyncing(true);
     try {
       const data: CloudData = {
@@ -105,44 +138,19 @@ const App: React.FC = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [sheetUrl, workspaceId, users, lmras, kickoffs, notifications, appConfig]);
+  }, [sheetUrl, workspaceId, users, lmras, kickoffs, notifications, appConfig, hasInitialPulled]);
 
-  const pullFromDatabase = useCallback(async () => {
-    if (!sheetUrl) return;
-    setIsSyncing(true);
-    try {
-      const cloud = await syncService.pullData(sheetUrl, workspaceId);
-      if (cloud && cloud.lastUpdated > lastSync) {
-        mergeData(cloud);
-      }
-    } catch (e) {
-      console.warn("Database pull mislukt.");
-    } finally {
-      setIsSyncing(false);
+  useEffect(() => {
+    if (sheetUrl) {
+      pullFromDatabase();
+    } else {
+      setHasInitialPulled(true);
     }
-  }, [sheetUrl, workspaceId, lastSync, mergeData]);
-
-  const handleConnect = async (url: string, id: string) => {
-    if (!url) { setConnError("Voer a.u.b. een Google Web App URL in."); return; }
-    setConnError('');
-    setIsSyncing(true);
-    try {
-      const cloud = await syncService.pullData(url, id);
-      setSheetUrl(url);
-      setWorkspaceId(id);
-      localStorage.setItem('vca_sheet_url', url);
-      localStorage.setItem('vca_workspace_id', id);
-      if (cloud) mergeData(cloud);
-    } catch (e) {
-      setConnError("Kon geen verbinding maken. Controleer je URL en instellingen.");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  }, []);
 
   useEffect(() => {
     if (!sheetUrl) return;
-    const interval = setInterval(pullFromDatabase, 30000);
+    const interval = setInterval(pullFromDatabase, 20000);
     return () => clearInterval(interval);
   }, [sheetUrl, pullFromDatabase]);
 
@@ -153,11 +161,11 @@ const App: React.FC = () => {
     localStorage.setItem('vca_notifications', JSON.stringify(notifications));
     localStorage.setItem('vca_app_config', JSON.stringify(appConfig));
     
-    if (sheetUrl) {
+    if (sheetUrl && hasInitialPulled && !isUpdatingFromCloud.current) {
       const timeout = setTimeout(pushToDatabase, 3000);
       return () => clearTimeout(timeout);
     }
-  }, [lmras, users, kickoffs, notifications, appConfig, pushToDatabase, sheetUrl]);
+  }, [lmras, users, kickoffs, notifications, appConfig, pushToDatabase, sheetUrl, hasInitialPulled]);
 
   const t = (key: TranslationKeys) => translations[lang][key] || key;
 
@@ -181,8 +189,6 @@ const App: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [inputUrl, setInputUrl] = useState(sheetUrl);
-  const [inputId, setInputId] = useState(workspaceId);
 
   const addLMRA = (lmra: LMRA) => setLmras(prev => [lmra, ...prev]);
   const updateLMRA = (u: LMRA) => setLmras(prev => prev.map(l => l.id === u.id ? u : l));
@@ -195,53 +201,24 @@ const App: React.FC = () => {
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-4">
           <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 mx-auto">
             <div className="text-center mb-8">
-              <img src={appConfig.logoUrl} alt="Logo" className="w-16 h-16 mx-auto mb-4 object-contain" />
+              <img src={appConfig.logoUrl} alt="Logo" className="w-48 h-24 mx-auto mb-4 object-contain" />
               <h1 className="text-4xl font-black text-slate-900 italic tracking-tighter">{appConfig.appName}</h1>
             </div>
 
-            {!sheetUrl ? (
-              <div className="space-y-6">
-                <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100">
-                  <p className="text-[10px] font-black text-orange-700 uppercase mb-2 tracking-widest">Database Koppelen</p>
-                  <p className="text-xs font-bold text-orange-600 leading-tight">Plak je Google Sheets Web App URL hieronder om te starten.</p>
-                </div>
-                <div className="space-y-3">
-                  <input 
-                    type="text" value={inputUrl} onChange={e => setInputUrl(e.target.value)} 
-                    className="w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl font-bold outline-none focus:border-orange-500 text-xs" 
-                    placeholder="Google Web App URL..." 
-                  />
-                  <input 
-                    type="text" value={inputId} onChange={e => setInputId(e.target.value)} 
-                    className="w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl font-bold outline-none focus:border-orange-500 text-xs" 
-                    placeholder="Workspace Naam (optioneel)" 
-                  />
-                  <button 
-                    onClick={() => handleConnect(inputUrl, inputId)} disabled={isSyncing}
-                    className="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl uppercase text-xs disabled:opacity-50"
-                  >
-                    {isSyncing ? 'Verbinding maken...' : 'Verbind Database'}
-                  </button>
-                </div>
-                {connError && <p className="text-red-500 text-[10px] font-black text-center">{connError}</p>}
+            <form onSubmit={handleLogin} className="space-y-5 animate-in slide-in-from-bottom-4">
+              <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 flex justify-between items-center">
+                 <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">
+                   {hasInitialPulled ? '✓ CLOUD DB ACTIEF' : '⌛ SYNCHRONISEREN...'}
+                 </span>
+                 <button type="button" onClick={() => setSheetUrl('')} className="text-[9px] font-black text-slate-400 uppercase">Wijzig</button>
               </div>
-            ) : (
-              <form onSubmit={handleLogin} className="space-y-5 animate-in slide-in-from-bottom-4">
-                <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 flex justify-between items-center">
-                   <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">✓ CLOUD DB ACTIEF</span>
-                   <button type="button" onClick={() => setSheetUrl('')} className="text-[9px] font-black text-slate-400 uppercase">Wijzig</button>
-                </div>
-                <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl font-bold outline-none focus:border-orange-500" placeholder={t('username')} />
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full px-6 py-4 bg-slate-50 border-2 rounded-2xl font-bold outline-none focus:border-orange-500" placeholder={t('password')} />
-                <button type="submit" className="w-full bg-orange-500 text-white font-black py-5 rounded-2xl shadow-xl uppercase text-xs">
-                  {t('login_btn')}
-                </button>
-                {loginError && <p className="text-red-500 text-[10px] font-black text-center">{loginError}</p>}
-                <div className="text-center pt-4">
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">jorik / jorik</p>
-                </div>
-              </form>
-            )}
+              <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold outline-none focus:border-orange-500" placeholder={t('username')} />
+              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold outline-none focus:border-orange-500" placeholder={t('password')} />
+              <button type="submit" className="w-full bg-orange-500 text-white font-black py-5 rounded-2xl shadow-xl uppercase text-xs">
+                {t('login_btn')}
+              </button>
+              {loginError && <p className="text-red-500 text-[10px] font-black text-center">{loginError}</p>}
+            </form>
           </div>
         </div>
       </LanguageContext.Provider>
