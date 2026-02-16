@@ -35,6 +35,8 @@ export interface User {
   isExternal: boolean;
   mustChangePassword?: boolean;
   timestamp: number;
+  deleted?: boolean;
+  isActive?: boolean;
 }
 
 export enum LMRAStatus {

@@ -11,6 +11,7 @@ interface LMRAViewProps {
   currentUser: User;
   users: User[];
   questions: string[];
+  permissions?: string[];
 }
 
 const SignatureModal: React.FC<{ 
@@ -174,7 +175,7 @@ const DetailModal: React.FC<{
   );
 };
 
-const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateLMRA, currentUser, users, questions: dynamicQuestions }) => {
+const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateLMRA, currentUser, users, questions: dynamicQuestions, permissions = [] }) => {
   const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [signingIdx, setSigningIdx] = useState<number | null>(null);
@@ -192,6 +193,8 @@ const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateL
   const [supervisorId, setSupervisorId] = useState('');
   const [attendees, setAttendees] = useState<Attendee[]>([{ userId: currentUser.id, name: currentUser.name, signature: '', isSigned: false }]);
   const [questions, setQuestions] = useState<LMRAQuestion[]>([]);
+
+  const canManage = permissions.includes('manage_records') || currentUser.role === UserRole.ADMIN;
 
   useEffect(() => {
     if (questions.length === 0 || !showForm) {
@@ -212,6 +215,12 @@ const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateL
     setAttendees(l.attendees.map(a => ({ ...a, signature: '', isSigned: false })));
     setQuestions(dynamicQuestions.map((q, i) => ({ id: `q${i}`, questionText: q, answer: null, reason: '' })));
     setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Weet u zeker dat u deze LMRA wilt verwijderen? Dit kan niet ongedaan worden gemaakt.")) {
+      setLmras(prev => prev.filter(l => l.id !== id));
+    }
   };
 
   const resetForm = () => {
@@ -382,7 +391,7 @@ const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateL
             </thead>
             <tbody className="divide-y divide-slate-50">
               {lmras.map(l => (
-                <tr key={l.id} className="hover:bg-slate-50 transition-all">
+                <tr key={l.id} className="hover:bg-slate-50 transition-all group">
                   <td className="px-8 py-6"><p className="font-black text-slate-800">{l.title}</p><p className="text-[10px] text-slate-400 font-bold">{l.date} • {l.location}</p></td>
                   <td className="px-8 py-6 text-sm font-bold text-slate-600">{l.userName}</td>
                   <td className="px-8 py-6 text-center">
@@ -390,12 +399,17 @@ const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateL
                       {l.status}
                     </span>
                   </td>
-                  <td className="px-8 py-6 text-right space-x-2">
-                    <button onClick={() => handleCopy(l)} className="bg-slate-50 text-slate-400 p-3 rounded-2xl hover:bg-orange-500 hover:text-white transition-all shadow-sm" title="Kopiëren">📋</button>
-                    {l.status === LMRAStatus.PENDING_SIGNATURE && (
-                      <button onClick={() => setViewingLMRAId(l.id)} className="bg-orange-50 text-orange-500 p-3 rounded-2xl hover:bg-orange-500 hover:text-white transition-all shadow-sm" title="Handtekeningen aanvullen">✍️</button>
-                    )}
-                    <button onClick={() => setViewingLMRAId(l.id)} className="bg-slate-50 text-slate-400 p-3 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shadow-sm" title="Bekijken">👁️</button>
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex justify-end items-center gap-2">
+                       <button onClick={() => handleCopy(l)} className="bg-slate-50 text-slate-400 p-3 rounded-2xl hover:bg-orange-500 hover:text-white transition-all shadow-sm" title="Kopiëren">📋</button>
+                       {l.status === LMRAStatus.PENDING_SIGNATURE && (
+                         <button onClick={() => setViewingLMRAId(l.id)} className="bg-orange-50 text-orange-500 p-3 rounded-2xl hover:bg-orange-500 hover:text-white transition-all shadow-sm" title="Handtekeningen aanvullen">✍️</button>
+                       )}
+                       <button onClick={() => setViewingLMRAId(l.id)} className="bg-slate-50 text-slate-400 p-3 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shadow-sm" title="Bekijken">👁️</button>
+                       {canManage && (
+                         <button onClick={() => handleDelete(l.id)} className="bg-red-50 text-red-500 p-3 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="Verwijderen">🗑️</button>
+                       )}
+                    </div>
                   </td>
                 </tr>
               ))}

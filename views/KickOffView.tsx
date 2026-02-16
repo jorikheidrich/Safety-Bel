@@ -11,6 +11,7 @@ interface KickOffViewProps {
   currentUser: User;
   users: User[];
   topics: string[];
+  permissions?: string[];
 }
 
 const SignatureModal: React.FC<{ 
@@ -71,13 +72,14 @@ const SignatureModal: React.FC<{
   );
 };
 
-const KickOffView: React.FC<KickOffViewProps> = ({ kickoffs, setKickoffs, addKickOff, onUpdateKickOff, currentUser, users, topics }) => {
+const KickOffView: React.FC<KickOffViewProps> = ({ kickoffs, setKickoffs, addKickOff, onUpdateKickOff, currentUser, users, topics, permissions = [] }) => {
   const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [signingIdx, setSigningIdx] = useState<number | null>(null);
   const [activeKOSigningId, setActiveKOSigningId] = useState<string | null>(null);
   
   const activeKOSigning = kickoffs.find(k => k.id === activeKOSigningId);
+  const canManage = permissions.includes('manage_records') || currentUser.role === UserRole.ADMIN;
 
   const [showExternalInput, setShowExternalInput] = useState(false);
   const [externalName, setExternalName] = useState('');
@@ -100,6 +102,12 @@ const KickOffView: React.FC<KickOffViewProps> = ({ kickoffs, setKickoffs, addKic
     if (externalName.trim()) {
       setAttendees([...attendees, { name: externalName.trim(), signature: '', isSigned: false }]);
       setExternalName(''); setShowExternalInput(false);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Weet u zeker dat u dit Kick-off verslag wilt verwijderen?")) {
+      setKickoffs(prev => prev.filter(k => k.id !== id));
     }
   };
 
@@ -212,7 +220,10 @@ const KickOffView: React.FC<KickOffViewProps> = ({ kickoffs, setKickoffs, addKic
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {kickoffs.map(ko => (
-          <div key={ko.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-50 hover:shadow-xl transition-all">
+          <div key={ko.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-50 hover:shadow-xl transition-all relative group">
+            {canManage && (
+              <button onClick={() => handleDelete(ko.id)} className="absolute top-4 right-4 bg-red-50 text-red-500 p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
+            )}
             <h3 className="font-black text-xl text-slate-900 mb-1">{ko.project}</h3>
             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-6">{ko.date} • {ko.location}</p>
             <div className="space-y-6">

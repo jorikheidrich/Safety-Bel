@@ -53,6 +53,7 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasInitialPulled, setHasInitialPulled] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   const [lmras, setLmras] = useState<LMRA[]>(() => {
     const saved = localStorage.getItem('vca_lmras');
@@ -74,9 +75,8 @@ const App: React.FC = () => {
   const mergeArrays = useCallback((local: any[], remote: any[]) => {
     if (!remote) return local;
     const map = new Map();
-    // Eerst lokale items in de map zetten
     local.forEach(item => map.set(item.id, item));
-    // Remote items toevoegen/overschrijven ALLEEN als de timestamp nieuwer is of als het item lokaal ontbreekt
+    
     remote.forEach(remoteItem => {
       const localItem = map.get(remoteItem.id);
       if (!localItem || (remoteItem.timestamp || 0) > (localItem.timestamp || 0)) {
@@ -94,7 +94,6 @@ const App: React.FC = () => {
     
     isUpdatingFromCloud.current = true;
     
-    // Cruciale wijziging: Gebruikerslijst samenvoegen i.p.v. overschrijven
     if (cloud.users) setUsers(prev => mergeArrays(prev, cloud.users));
     if (cloud.lmras) setLmras(prev => mergeArrays(prev, cloud.lmras));
     if (cloud.kickoffs) setKickoffs(prev => mergeArrays(prev, cloud.kickoffs));
@@ -162,7 +161,7 @@ const App: React.FC = () => {
     localStorage.setItem('vca_app_config', JSON.stringify(appConfig));
     
     if (sheetUrl && hasInitialPulled && !isUpdatingFromCloud.current) {
-      const timeout = setTimeout(pushToDatabase, 3000);
+      const timeout = setTimeout(pushToDatabase, 1000);
       return () => clearTimeout(timeout);
     }
   }, [lmras, users, kickoffs, notifications, appConfig, pushToDatabase, sheetUrl, hasInitialPulled]);
@@ -171,8 +170,20 @@ const App: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+    setLoginError('');
+    
+    const found = users.find(u => 
+      !u.deleted && 
+      u.username.toLowerCase() === username.toLowerCase() && 
+      u.password === password
+    );
+
     if (found) {
+      // Check of de gebruiker actief is
+      if (found.isActive === false) {
+        setLoginError("Uw account is gedeactiveerd. Neem contact op met een admin.");
+        return;
+      }
       setCurrentUser(found);
       localStorage.setItem('vca_user', JSON.stringify({ username: found.username }));
     } else {
@@ -180,20 +191,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('vca_user');
-    setActiveTab('dashboard');
-  };
-
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-
-  const addLMRA = (lmra: LMRA) => setLmras(prev => [lmra, ...prev]);
-  const updateLMRA = (u: LMRA) => setLmras(prev => prev.map(l => l.id === u.id ? u : l));
-  const addKickOff = (ko: KickOffMeeting) => setKickoffs(prev => [ko, ...prev]);
-  const updateKickoff = (u: KickOffMeeting) => setKickoffs(prev => prev.map(k => k.id === u.id ? u : k));
 
   if (!currentUser) {
     return (
@@ -204,20 +203,13 @@ const App: React.FC = () => {
               <img src={appConfig.logoUrl} alt="Logo" className="w-48 h-24 mx-auto mb-4 object-contain" />
               <h1 className="text-4xl font-black text-slate-900 italic tracking-tighter">{appConfig.appName}</h1>
             </div>
-
             <form onSubmit={handleLogin} className="space-y-5 animate-in slide-in-from-bottom-4">
-              <div className="bg-green-50 px-4 py-2 rounded-xl border border-green-100 flex justify-between items-center">
-                 <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">
-                   {hasInitialPulled ? '✓ CLOUD DB ACTIEF' : '⌛ SYNCHRONISEREN...'}
-                 </span>
-                 <button type="button" onClick={() => setSheetUrl('')} className="text-[9px] font-black text-slate-400 uppercase">Wijzig</button>
-              </div>
               <input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold outline-none focus:border-orange-500" placeholder={t('username')} />
               <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold outline-none focus:border-orange-500" placeholder={t('password')} />
               <button type="submit" className="w-full bg-orange-500 text-white font-black py-5 rounded-2xl shadow-xl uppercase text-xs">
                 {t('login_btn')}
               </button>
-              {loginError && <p className="text-red-500 text-[10px] font-black text-center">{loginError}</p>}
+              {loginError && <p className="text-red-500 text-[10px] font-black text-center mt-2">{loginError}</p>}
             </form>
           </div>
         </div>
@@ -225,23 +217,25 @@ const App: React.FC = () => {
     );
   }
 
+  const userPermissions = appConfig.permissions[currentUser.role] || [];
+
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>
       <div className="min-h-screen bg-slate-50 lg:pl-64 flex flex-col">
         <Sidebar 
           currentUser={currentUser} activeTab={activeTab} setActiveTab={setActiveTab} 
-          onLogout={handleLogout} appConfig={appConfig} unreadNotifications={notifications.filter(n => !n.isRead).length}
+          onLogout={() => setCurrentUser(null)} appConfig={appConfig} unreadNotifications={notifications.filter(n => !n.isRead).length}
           workspaceId={workspaceId} isSyncing={isSyncing} isOffline={!sheetUrl}
         />
-        <main className="flex-1 p-4 md:p-8 pt-20 lg:pt-8 w-full max-w-7xl mx-auto overflow-x-hidden">
+        <main className="flex-1 p-4 md:p-8 pt-36 lg:pt-8 w-full max-w-7xl mx-auto overflow-x-hidden">
           {activeTab === 'dashboard' && <Dashboard lmras={lmras} kickoffs={kickoffs} currentUser={currentUser} onUpdateLMRA={updateLMRA} onUpdateKickoff={updateKickoff} unreadNotifications={notifications.filter(n => !n.isRead)} setActiveTab={setActiveTab} lastSync={lastSync} isSyncing={isSyncing} />}
-          {activeTab === 'lmra' && <LMRAView lmras={lmras} setLmras={setLmras} addLMRA={addLMRA} onUpdateLMRA={updateLMRA} currentUser={currentUser} users={users} questions={appConfig.lmraQuestions} />}
+          {activeTab === 'lmra' && <LMRAView lmras={lmras} setLmras={setLmras} addLMRA={lmra => setLmras([lmra, ...lmras])} onUpdateLMRA={updateLMRA} currentUser={currentUser} users={users} questions={appConfig.lmraQuestions} permissions={userPermissions} />}
           {activeTab === 'nok' && <NOKManagement lmras={lmras} updateLMRA={updateLMRA} currentUser={currentUser} users={users} onVisit={() => setNotifications(prev => prev.map(n => ({...n, isRead: true})))} />}
-          {activeTab === 'kickoff' && <KickOffView kickoffs={kickoffs} setKickoffs={setKickoffs} addKickOff={addKickOff} onUpdateKickOff={updateKickoff} currentUser={currentUser} users={users} topics={appConfig.kickoffTopics} />}
+          {activeTab === 'kickoff' && <KickOffView kickoffs={kickoffs} setKickoffs={setKickoffs} addKickOff={ko => setKickoffs([ko, ...kickoffs])} onUpdateKickOff={updateKickoff} currentUser={currentUser} users={users} topics={appConfig.kickoffTopics} permissions={userPermissions} />}
           {activeTab === 'reports' && <ReportsView lmras={lmras} kickoffs={kickoffs} users={users} />}
           {activeTab === 'library' && <LibraryView />}
           {activeTab === 'profile' && <ProfileView currentUser={currentUser} users={users} onUpdateUser={u => setUsers(prev => prev.map(old => old.id === u.id ? u : old))} />}
-          {activeTab === 'users' && <UserManagement users={users} setUsers={setUsers} />}
+          {activeTab === 'users' && <UserManagement users={users} setUsers={setUsers} appConfig={appConfig} currentUser={currentUser} />}
           {activeTab === 'settings' && (
             <SettingsView 
               appConfig={appConfig} setAppConfig={setAppConfig} 
@@ -255,6 +249,9 @@ const App: React.FC = () => {
       </div>
     </LanguageContext.Provider>
   );
+
+  function updateLMRA(u: LMRA) { setLmras(prev => prev.map(l => l.id === u.id ? u : l)); }
+  function updateKickoff(u: KickOffMeeting) { setKickoffs(prev => prev.map(k => k.id === u.id ? u : k)); }
 };
 
 export default App;

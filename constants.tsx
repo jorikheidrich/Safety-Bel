@@ -11,7 +11,8 @@ export const MOCK_USERS: User[] = [
     role: UserRole.ADMIN,
     department: Department.GENERAL,
     isExternal: false,
-    timestamp: 1700000000000
+    timestamp: 1700000000000,
+    isActive: true
   }
 ];
 
@@ -37,8 +38,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     "Communicatie op de werf"
   ],
   permissions: {
-    [UserRole.ADMIN]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings'],
-    [UserRole.WERFLEIDER]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings'], // Moderator: everything
+    [UserRole.ADMIN]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings', 'manage_records'],
+    [UserRole.WERFLEIDER]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile', 'users', 'settings', 'manage_records'],
     [UserRole.PREVENTIE_ADVISEUR]: ['dashboard', 'lmra', 'nok', 'reports', 'library', 'profile'],
     [UserRole.PROJECT_MANAGER]: ['dashboard', 'lmra', 'nok', 'kickoff', 'reports', 'library', 'profile'],
     [UserRole.PROJECT_ASSISTENT]: ['dashboard', 'lmra', 'kickoff', 'library', 'profile'],
