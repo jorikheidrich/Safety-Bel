@@ -13,7 +13,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
-  // Toon alle gebruikers (ook inactieve, maar filter deleted)
+  // Filter enkel deleted weg, laat inactieven staan
   const allUsers = users.filter(u => !u.deleted);
 
   const [formData, setFormData] = useState({
@@ -59,7 +59,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
 
   const handleToggleActive = (id: string) => {
     if (currentUser && id === currentUser.id) {
-      alert("U kunt uw eigen account niet deactiveren.");
+      alert("Beveiliging: U kunt uw eigen administrator account niet deactiveren.");
       return;
     }
 
@@ -108,8 +108,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter italic">👥 GEBRUIKERS & RECHTEN</h1>
-          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Beheer toegang en status</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter italic">👥 GEBRUIKERS & TOEGANG</h1>
+          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Beheer actieve en inactieve accounts</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -122,30 +122,30 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
       {showForm && (
         <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-2xl border border-slate-50 animate-in slide-in-from-top-4 mb-10">
           <div className="flex justify-between items-center mb-10 border-b border-slate-50 pb-6">
-            <h2 className="text-2xl font-black uppercase tracking-tighter italic">{editingUser ? 'Aanpassen' : 'Toevoegen'}</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tighter italic">{editingUser ? 'Gegevens Aanpassen' : 'Nieuwe Gebruiker'}</h2>
             <button onClick={() => setShowForm(false)} className="text-slate-300 hover:text-slate-900 transition-colors">✕</button>
           </div>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Volledige Naam</label>
-              <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold transition-all" />
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Naam</label>
+              <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Email</label>
-              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold transition-all" />
+              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Username</label>
-              <input required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold transition-all" />
+              <input required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Wachtwoord</label>
-              <input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold transition-all" placeholder="Standaard = username" />
+              <input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-bold" placeholder="Username is standaard" />
             </div>
             
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Rol</label>
-              <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-black text-sm uppercase transition-all">
+              <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 font-black text-sm uppercase">
                 <option value={UserRole.TECHNIEKER}>Technieker</option>
                 <option value={UserRole.WERFLEIDER}>Werfleider (Moderator)</option>
                 <option value={UserRole.PROJECT_MANAGER}>Project Manager</option>
@@ -156,7 +156,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
 
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Afdeling</label>
-              <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value as Department})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 outline-none font-black text-sm uppercase transition-all">
+              <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value as Department})} className="w-full p-5 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-orange-500 font-black text-sm uppercase">
                 {(appConfig.departments || ['ALGEMEEN']).map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -165,7 +165,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
 
             <div className="md:col-span-2 flex justify-end gap-4 mt-6">
               <button type="button" onClick={() => setShowForm(false)} className="px-8 py-4 text-slate-400 font-black uppercase text-xs">Annuleren</button>
-              <button type="submit" className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl transition-all">Opslaan</button>
+              <button type="submit" className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl transition-all">Gebruiker Opslaan</button>
             </div>
           </form>
         </div>
@@ -176,15 +176,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b">
-                <th className="px-10 py-8">Naam</th>
-                <th className="px-10 py-8 text-center">Status</th>
-                <th className="px-10 py-8 text-center">Rol</th>
+                <th className="px-10 py-8">Gebruiker</th>
+                <th className="px-10 py-8 text-center">Toegang</th>
+                <th className="px-10 py-8 text-center">Functie</th>
                 <th className="px-10 py-8 text-right">Acties</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {allUsers.map(user => (
-                <tr key={user.id} className={`transition-all group ${user.isActive === false ? 'bg-red-50/30' : 'hover:bg-slate-50/50'}`}>
+                <tr key={user.id} className={`transition-all group ${user.isActive === false ? 'bg-slate-50/50 grayscale' : 'hover:bg-slate-50/50'}`}>
                   <td className="px-10 py-8">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${user.isActive === false ? 'bg-slate-200 text-slate-400' : (user.isExternal ? 'bg-orange-100 text-orange-600' : 'bg-slate-900 text-white')}`}>
@@ -192,7 +192,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
                       </div>
                       <div>
                         <p className={`text-sm font-black ${user.isActive === false ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{user.name}</p>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase">{user.department}</p>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase">{user.username} • {user.department}</p>
                       </div>
                     </div>
                   </td>
@@ -205,7 +205,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
                         : 'bg-white text-red-500 border-red-100'
                       }`}
                     >
-                      {user.isActive !== false ? '● Actief' : '○ Inactief'}
+                      {user.isActive !== false ? '● Actief' : '○ Geblokkeerd'}
                     </button>
                   </td>
                   <td className="px-10 py-8 text-center">
@@ -215,7 +215,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, setUsers, appCon
                   </td>
                   <td className="px-10 py-8 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => handleOpenEdit(user)} className="p-3 text-slate-400 hover:text-orange-500 transition-colors">✏️</button>
+                      <button onClick={() => handleOpenEdit(user)} className="p-3 bg-slate-100 rounded-xl text-slate-400 hover:text-orange-500 transition-colors">✏️</button>
                     </div>
                   </td>
                 </tr>

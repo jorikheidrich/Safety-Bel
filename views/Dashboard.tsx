@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { LMRA, KickOffMeeting, LMRAStatus, User, UserRole, Attendee, Notification } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { LMRA, KickOffMeeting, LMRAStatus, User, UserRole, Notification } from '../types';
 import { useTranslation } from '../App';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getSafetyAdvice } from '../services/geminiService';
 
 interface DashboardProps {
@@ -18,15 +17,24 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
-  lmras, kickoffs, currentUser, onUpdateLMRA, onUpdateKickoff, 
-  unreadNotifications = [], setActiveTab, lastSync, isSyncing 
+  lmras, kickoffs, currentUser, setActiveTab, lastSync, isSyncing 
 }) => {
   const [dailyTip, setDailyTip] = useState('Draag altijd je PBM\'s op de werf.');
   const { t } = useTranslation();
   
-  const pendingLmras = lmras.filter(l => 
+  // Check voor openstaande NOK meldingen (voor Admin en Preventieadviseur)
+  const openNoks = useMemo(() => lmras.filter(l => l.status === LMRAStatus.NOK), [lmras]);
+  
+  // Check voor documenten die de huidige gebruiker nog moet tekenen
+  const unsignedLmras = useMemo(() => lmras.filter(l => 
     l.attendees.some(a => a.userId === currentUser.id && !a.isSigned)
-  );
+  ), [lmras, currentUser]);
+
+  const unsignedKickoffs = useMemo(() => kickoffs.filter(k => 
+    k.attendees.some(a => a.userId === currentUser.id && !a.isSigned)
+  ), [kickoffs, currentUser]);
+
+  const totalUnsigned = unsignedLmras.length + unsignedKickoffs.length;
 
   const safetyScore = useMemo(() => {
     const myReports = lmras.filter(l => l.userId === currentUser.id);
@@ -39,7 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     getSafetyAdvice("Algemeen dagelijks advies voor een technieker op de werf").then(tip => setDailyTip(tip));
   }, []);
 
-  const showNOKAlert = (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.WERFLEIDER) && unreadNotifications.length > 0;
+  const isManagement = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.PREVENTIE_ADVISEUR;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -63,20 +71,40 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {showNOKAlert && (
-        <div className="bg-red-500 text-white p-6 rounded-[2.5rem] shadow-2xl animate-pulse flex items-center justify-between">
+      {/* Melding voor Management over NOK meldingen */}
+      {isManagement && openNoks.length > 0 && (
+        <div className="bg-red-500 text-white p-6 rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 flex items-center justify-between">
           <div className="flex items-center gap-4">
              <span className="text-3xl">⚠️</span>
              <div>
-               <p className="font-black uppercase text-xs tracking-widest">Dringende Aandacht Vereist</p>
-               <p className="font-bold text-sm">Er zijn {unreadNotifications.length} nieuwe NOK meldingen.</p>
+               <p className="font-black uppercase text-[10px] tracking-widest opacity-80">Incidenten Alarm</p>
+               <p className="font-bold text-sm">Er zijn {openNoks.length} openstaande NOK meldingen die aandacht vereisen.</p>
              </div>
           </div>
           <button 
             onClick={() => setActiveTab('nok')}
-            className="bg-white text-red-500 px-6 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all"
+            className="bg-white text-red-500 px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all"
           >
-            Bekijk Nu
+            Behandel Nu
+          </button>
+        </div>
+      )}
+
+      {/* Melding voor Personeel over openstaande handtekeningen */}
+      {!isManagement && totalUnsigned > 0 && (
+        <div className="bg-orange-500 text-white p-6 rounded-[2.5rem] shadow-2xl animate-in slide-in-from-right-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <span className="text-3xl">✍️</span>
+             <div>
+               <p className="font-black uppercase text-[10px] tracking-widest opacity-80">Handtekening Vereist</p>
+               <p className="font-bold text-sm">Je hebt nog {totalUnsigned} documenten om te ondertekenen.</p>
+             </div>
+          </div>
+          <button 
+            onClick={() => setActiveTab(unsignedLmras.length > 0 ? 'lmra' : 'kickoff')}
+            className="bg-white text-orange-500 px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all"
+          >
+            Teken Nu
           </button>
         </div>
       )}

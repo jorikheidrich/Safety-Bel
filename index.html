@@ -25,6 +25,30 @@
         /* Mobile safe area padding for modern iPhones */
         .safe-area-inset-top { padding-top: env(safe-area-inset-top); }
         .safe-area-inset-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+        /* Print styles to handle PDF generation without new windows on mobile */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-section, .print-section * {
+                visibility: visible;
+            }
+            .print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 <script type="importmap">
 {

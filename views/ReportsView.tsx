@@ -17,71 +17,31 @@ const DetailModal: React.FC<{
 }> = ({ lmra, onClose, users }) => {
   const { t } = useTranslation();
   
-  const generateRecordPDF = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    const supervisor = users.find(u => u.id === lmra.supervisorId)?.name || 'Onbekend';
-
-    const html = `
-      <html>
-        <head>
-          <title>LMRA Rapport - ${lmra.title}</title>
-          <style>
-            body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-            .header { border-bottom: 5px solid #f97316; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-            h1 { margin: 0; font-size: 26px; font-weight: 900; color: #0f172a; text-transform: uppercase; font-style: italic; }
-            .meta { display: grid; grid-template-cols: 1fr 1fr; gap: 15px; margin-bottom: 30px; background: #f8fafc; padding: 25px; border-radius: 15px; border: 1px solid #e2e8f0; }
-            .meta-item { font-size: 13px; }
-            .meta-label { font-weight: 900; color: #64748b; text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 2px; }
-            .meta-val { font-weight: bold; color: #1e293b; }
-            .section-title { font-weight: 900; text-transform: uppercase; font-size: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin: 30px 0 15px 0; color: #f97316; }
-            .question { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-            .answer { font-weight: 900; padding: 4px 10px; border-radius: 6px; font-size: 10px; text-transform: uppercase; }
-            .ok { background: #dcfce7; color: #15803d; }
-            .nok { background: #fee2e2; color: #b91c1c; }
-            .nvt { background: #f1f5f9; color: #64748b; }
-            .attendees { display: grid; grid-template-cols: 1fr 1fr 1fr; gap: 20px; margin-top: 20px; }
-            .attendee-card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; text-align: center; background: #fff; }
-            .signature { height: 70px; max-width: 100%; object-fit: contain; margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 5px; }
-          </style>
-        </head>
-        <body>
-          <div class="header"><h1>VCA BEL - LMRA</h1><span class="answer ${lmra.status.includes('OK') ? 'ok' : 'nok'}">${lmra.status}</span></div>
-          <div class="meta">
-            <div class="meta-item"><span class="meta-label">Project</span><span class="meta-val">${lmra.title}</span></div>
-            <div class="meta-item"><span class="meta-label">Locatie</span><span class="meta-val">${lmra.location}</span></div>
-            <div class="meta-item"><span class="meta-label">Datum</span><span class="meta-val">${lmra.date}</span></div>
-            <div class="meta-item"><span class="meta-label">Uitvoerder</span><span class="meta-val">${lmra.userName}</span></div>
-          </div>
-          <div class="section-title">Resultaten</div>
-          ${lmra.questions.map(q => `<div class="question"><span>${q.questionText}</span><span class="answer ${q.answer?.toLowerCase() || 'nvt'}">${q.answer || 'NVT'}</span></div>`).join('')}
-          <div class="section-title">Signatures</div>
-          <div class="attendees">${lmra.attendees.map(a => `<div class="attendee-card"><div>${a.name}</div>${a.isSigned ? `<img class="signature" src="${a.signature}" />` : ''}</div>`).join('')}</div>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
     <div className="fixed inset-0 z-[110] bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3.5rem] p-8 md:p-12 shadow-2xl animate-in zoom-in-95">
-        <div className="flex justify-between items-start mb-10 border-b border-slate-50 pb-6">
-          <div><h2 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">{lmra.title}</h2><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lmra.date}</p></div>
-          <div className="flex gap-3">
-             <button onClick={generateRecordPDF} className="bg-orange-500 text-white px-6 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase">📄 PDF</button>
-             <button onClick={onClose} className="bg-slate-100 text-slate-400 p-3 rounded-2xl">✕</button>
-          </div>
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] md:rounded-[3.5rem] p-6 md:p-12 shadow-2xl animate-in zoom-in-95 print-section relative">
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 md:top-8 md:right-8 bg-slate-100 text-slate-500 hover:text-slate-900 p-4 rounded-full z-[120] no-print"
+        >
+          ✕
+        </button>
+
+        <div className="flex justify-between items-start mb-8 border-b border-slate-50 pb-6 pr-12">
+          <div><h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter italic uppercase">{lmra.title}</h2><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lmra.date}</p></div>
+          <button onClick={handlePrint} className="bg-orange-500 text-white px-5 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase no-print hidden md:block">📄 Print / PDF</button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
            <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-orange-500 tracking-widest border-b pb-2">Checklist</h3>
+              <h3 className="text-[10px] font-black uppercase text-orange-500 tracking-widest border-b pb-2">Checklist Resultaten</h3>
               {lmra.questions.map((q, idx) => (
                 <div key={idx} className={`p-4 rounded-xl border-2 ${q.answer === 'NOK' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-50'}`}>
-                   <div className="flex justify-between items-center text-sm font-bold">
+                   <div className="flex justify-between items-center text-xs font-bold">
                      <span>{q.questionText}</span>
                      <span className={`px-3 py-1 rounded-lg text-[10px] uppercase ${q.answer === 'OK' ? 'text-green-600' : 'text-red-600'}`}>{q.answer}</span>
                    </div>
@@ -89,17 +49,21 @@ const DetailModal: React.FC<{
               ))}
            </div>
            <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-orange-500 tracking-widest border-b pb-2">Personeel</h3>
+              <h3 className="text-[10px] font-black uppercase text-orange-500 tracking-widest border-b pb-2">Geregistreerd Personeel</h3>
               <div className="grid grid-cols-2 gap-4">
                 {lmra.attendees.map((a, i) => (
                   <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center">
-                    <span className="text-xs font-black">{a.name}</span>
-                    {a.isSigned && <img src={a.signature} className="h-10 mt-2 opacity-50" />}
+                    <span className="text-[10px] font-black">{a.name}</span>
+                    {a.isSigned && <img src={a.signature} className="h-8 mt-2 opacity-50" />}
                   </div>
                 ))}
               </div>
            </div>
         </div>
+        
+        <button onClick={handlePrint} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl no-print md:hidden mt-8">
+          Genereer Rapport / PDF
+        </button>
       </div>
     </div>
   );
@@ -156,27 +120,24 @@ const ReportsView: React.FC<ReportsViewProps> = ({ lmras, kickoffs, users }) => 
     ];
   }, [filteredData]);
 
-  const generateFullOverview = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    const html = `<html><head><title>VCA Rapport</title></head><body><h1>Veiligheidsrapportage Overzicht</h1><p>Gefilterd op: ${year}-${month}-${day}</p><hr/><table><thead><tr><th>Project</th><th>Datum</th><th>Status</th><th>Persoon</th></tr></thead><tbody>${filteredData.map(d => `<tr><td>${d.title}</td><td>${d.date}</td><td>${d.status}</td><td>${d.userName}</td></tr>`).join('')}</tbody></table></body></html>`;
-    printWindow.document.write(html); printWindow.document.close(); setTimeout(() => printWindow.print(), 500);
+  const handleExportAll = () => {
+    window.print();
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div><h1 className="text-3xl font-black text-slate-900 tracking-tighter italic">{t('reports_title')}</h1><p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Data Analysis & Filters</p></div>
-        <button onClick={generateFullOverview} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all">📊 Export PDF</button>
+        <button onClick={handleExportAll} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all no-print">📊 Export Overzicht</button>
       </div>
 
       {/* Filter Section */}
-      <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-50 space-y-8">
+      <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-sm border border-slate-50 space-y-8 no-print">
         <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest italic flex items-center gap-2">
           <span>🔍</span> Filter op Datum, Werf, Persoon of NOK
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           <div className="space-y-1">
             <label className="text-[9px] font-black text-slate-400 uppercase ml-2">{t('filter_year')}</label>
             <select value={year} onChange={e => setYear(e.target.value)} className="w-full p-4 bg-slate-50 border-2 border-slate-50 rounded-2xl text-xs font-black focus:border-orange-500 outline-none">
@@ -224,43 +185,43 @@ const ReportsView: React.FC<ReportsViewProps> = ({ lmras, kickoffs, users }) => 
       </div>
 
       {/* Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-50">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 no-print">
+        <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-sm border border-slate-50">
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-10">Trend Analyse</h3>
           <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} /><YAxis axisLine={false} tickLine={false} /><Tooltip cursor={{ fill: '#f8fafc' }} /><Bar dataKey="value" radius={[8, 8, 8, 8]} barSize={50}>{stats.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}</Bar></BarChart></ResponsiveContainer></div>
         </div>
-        <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-50 flex items-center justify-center">
+        <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-sm border border-slate-50 flex flex-col md:flex-row items-center justify-center gap-6">
           <div className="h-48 w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={stats} innerRadius={60} outerRadius={85} paddingAngle={8} dataKey="value">{stats.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}</Pie><Tooltip /></PieChart></ResponsiveContainer></div>
-          <div className="space-y-2 ml-4">
+          <div className="space-y-2 grid grid-cols-2 md:grid-cols-1 gap-2 w-full md:w-auto">
              {stats.map(s => <div key={s.name} className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase"><span className="w-2 h-2 rounded-full" style={{background: s.color}}></span>{s.name}: {s.value}</div>)}
           </div>
         </div>
       </div>
 
       {/* Results Table */}
-      <div className="bg-white rounded-[3.5rem] shadow-sm border border-slate-50 overflow-hidden">
+      <div className="bg-white rounded-[2rem] md:rounded-[3.5rem] shadow-sm border border-slate-50 overflow-hidden print-section">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b">
-                <th className="px-10 py-8">Datum & Project</th>
-                <th className="px-10 py-8">Persoon</th>
-                <th className="px-10 py-8 text-center">Status</th>
-                <th className="px-10 py-8 text-right">Details</th>
+                <th className="px-6 md:px-10 py-6 md:py-8">Datum & Project</th>
+                <th className="px-6 md:px-10 py-6 md:py-8">Persoon</th>
+                <th className="px-6 md:px-10 py-6 md:py-8 text-center">Status</th>
+                <th className="px-6 md:px-10 py-6 md:py-8 text-right no-print">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filteredData.map(d => (
                 <tr key={d.id} className="hover:bg-slate-50/50 transition-all">
-                  <td className="px-10 py-8"><p className="font-black text-slate-800">{d.title}</p><p className="text-[10px] font-black text-slate-400 uppercase">{d.date}</p></td>
-                  <td className="px-10 py-8 font-black text-sm text-slate-600">{d.userName}</td>
-                  <td className="px-10 py-8 text-center"><span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase border ${d.status === LMRAStatus.OK ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{d.status}</span></td>
-                  <td className="px-10 py-8 text-right"><button onClick={() => setViewingLMRA(d)} className="text-slate-200 hover:text-slate-900 text-xl transition-all">👁️</button></td>
+                  <td className="px-6 md:px-10 py-6 md:py-8"><p className="font-black text-slate-800 text-sm">{d.title}</p><p className="text-[10px] font-black text-slate-400 uppercase">{d.date}</p></td>
+                  <td className="px-6 md:px-10 py-6 md:py-8 font-black text-[12px] text-slate-600">{d.userName}</td>
+                  <td className="px-6 md:px-10 py-6 md:py-8 text-center"><span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase border ${d.status === LMRAStatus.OK ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{d.status}</span></td>
+                  <td className="px-6 md:px-10 py-6 md:py-8 text-right no-print"><button onClick={() => setViewingLMRA(d)} className="text-slate-200 hover:text-slate-900 text-xl transition-all">👁️</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {filteredData.length === 0 && <div className="p-32 text-center text-slate-300 font-black uppercase tracking-widest italic text-xs">Geen data gevonden voor deze filters</div>}
+          {filteredData.length === 0 && <div className="p-20 md:p-32 text-center text-slate-300 font-black uppercase tracking-widest italic text-[10px]">Geen data gevonden voor deze filters</div>}
         </div>
       </div>
 

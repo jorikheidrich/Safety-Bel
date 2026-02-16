@@ -58,8 +58,8 @@ const SignatureModal: React.FC<{
   const save = () => { if (canvasRef.current) onSave(canvasRef.current.toDataURL()); };
 
   return (
-    <div className="fixed inset-0 z-[150] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95">
+    <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-[3rem] p-8 md:p-10 shadow-2xl animate-in zoom-in-95">
         <h3 className="text-xl font-black mb-1 uppercase tracking-tight">{t('sign')}</h3>
         <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">{personName}</p>
         <canvas ref={canvasRef} width={400} height={200} className="w-full h-48 border-2 border-slate-100 rounded-[2rem] bg-slate-50 touch-none" onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={() => setIsDrawing(false)} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={() => setIsDrawing(false)} />
@@ -81,12 +81,8 @@ const DetailModal: React.FC<{
   const { t } = useTranslation();
   const [signingIdx, setSigningIdx] = useState<number | null>(null);
   
-  const generateRecordPDF = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    const supervisor = users.find(u => u.id === lmra.supervisorId)?.name || 'Onbekend';
-    const html = `<html><head><title>LMRA - ${lmra.title}</title><style>body{font-family:sans-serif;padding:40px} .header{display:flex;justify-content:space-between;border-bottom:4px solid orange;padding-bottom:10px} .meta{display:grid;grid-template-cols:1fr 1fr;gap:10px;margin-top:20px;background:#f8fafc;padding:20px;border-radius:10px} .q{padding:10px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between} .signature{height:60px;margin-top:10px}</style></head><body><div class="header"><h1>LMRA RAPPORT</h1><span>STATUS: ${lmra.status}</span></div><div class="meta"><div><b>Project:</b> ${lmra.title}</div><div><b>Locatie:</b> ${lmra.location}</div><div><b>Datum:</b> ${lmra.date}</div><div><b>Supervisor:</b> ${supervisor}</div></div><h3>Checklist</h3>${lmra.questions.map(q => `<div class="q"><span>${q.questionText}</span><b>${q.answer || 'NVT'}</b></div>`).join('')}<h3>Handtekeningen</h3><div style="display:grid;grid-template-cols:1fr 1fr 1fr;gap:20px">${lmra.attendees.map(a => `<div><b>${a.name}</b><br/>${a.isSigned ? `<img class="signature" src="${a.signature}"/>` : 'Niet getekend'}</div>`).join('')}</div></body></html>`;
-    printWindow.document.write(html); printWindow.document.close(); setTimeout(() => printWindow.print(), 500);
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleLateSignature = (dataUrl: string) => {
@@ -110,22 +106,30 @@ const DetailModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[110] bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3.5rem] p-8 md:p-12 shadow-2xl animate-in zoom-in-95">
-        <div className="flex justify-between items-start mb-10 border-b border-slate-50 pb-6">
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] md:rounded-[3.5rem] p-6 md:p-12 shadow-2xl animate-in zoom-in-95 print-section relative">
+        {/* Vaste sluitknop voor mobiel bovenaan rechts */}
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 md:top-8 md:right-8 bg-slate-100 text-slate-500 hover:text-slate-900 p-4 rounded-full z-[120] no-print"
+          aria-label="Sluiten"
+        >
+          ✕
+        </button>
+
+        <div className="flex justify-between items-start mb-8 border-b border-slate-50 pb-6 pr-12">
           <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">{lmra.title}</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter italic uppercase">{lmra.title}</h2>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lmra.date} • {lmra.location}</p>
           </div>
-          <div className="flex gap-3">
-             <button onClick={generateRecordPDF} className="bg-orange-500 text-white px-6 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest">📄 PDF</button>
-             <button onClick={onClose} className="bg-slate-100 text-slate-400 p-3 rounded-2xl">✕</button>
-          </div>
+          <button onClick={handlePrint} className="bg-orange-500 text-white px-5 py-3 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest no-print hidden md:block">
+            📄 Print / PDF
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mb-6">
            <div className="space-y-6">
               <div className="flex items-center justify-between border-b pb-2">
-                <h3 className="text-xs font-black uppercase text-orange-500 tracking-widest">Resultaten</h3>
+                <h3 className="text-[10px] font-black uppercase text-orange-500 tracking-widest">Resultaten Checklist</h3>
                 <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase border ${
                   lmra.status === LMRAStatus.OK ? 'bg-green-100 text-green-700 border-green-200' : 
                   lmra.status === LMRAStatus.RESOLVED ? 'bg-blue-100 text-blue-700 border-blue-200' :
@@ -135,7 +139,7 @@ const DetailModal: React.FC<{
                   {lmra.status}
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {lmra.questions.map((q, idx) => (
                   <div key={idx} className={`p-4 rounded-xl border-2 flex justify-between items-center ${q.answer === 'NOK' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-50'}`}>
                      <span className="text-xs font-bold text-slate-700">{q.questionText}</span>
@@ -146,10 +150,10 @@ const DetailModal: React.FC<{
            </div>
 
            <div className="space-y-6">
-              <h3 className="text-xs font-black uppercase text-orange-500 tracking-widest border-b pb-2">Handtekeningen</h3>
+              <h3 className="text-[10px] font-black uppercase text-orange-500 tracking-widest border-b pb-2">Ondertekening Teams</h3>
               <div className="grid grid-cols-1 gap-4">
                 {lmra.attendees.map((a, i) => (
-                  <div key={i} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between group">
+                  <div key={i} className="bg-slate-50 p-5 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 flex items-center justify-between group">
                     <div>
                       <p className="font-black text-sm text-slate-800">{a.name}</p>
                       <p className={`text-[9px] font-black uppercase tracking-widest ${a.isSigned ? 'text-green-500' : 'text-orange-500'}`}>
@@ -157,15 +161,19 @@ const DetailModal: React.FC<{
                       </p>
                     </div>
                     {a.isSigned ? (
-                      <img src={a.signature} className="h-10 opacity-40 object-contain" />
+                      <img src={a.signature} className="h-8 md:h-10 opacity-40 object-contain" />
                     ) : (
-                      <button onClick={() => setSigningIdx(i)} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all animate-pulse hover:animate-none">✍️ {t('sign')}</button>
+                      <button onClick={() => setSigningIdx(i)} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all no-print">✍️ Tekenen</button>
                     )}
                   </div>
                 ))}
               </div>
            </div>
         </div>
+        
+        <button onClick={handlePrint} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl no-print md:hidden mt-4">
+          Genereer Rapport / PDF
+        </button>
 
         {signingIdx !== null && (
           <SignatureModal personName={lmra.attendees[signingIdx].name} onClose={() => setSigningIdx(null)} onSave={handleLateSignature} />
@@ -218,7 +226,7 @@ const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateL
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Weet u zeker dat u deze LMRA wilt verwijderen? Dit kan niet ongedaan worden gemaakt.")) {
+    if (confirm("Weet u zeker dat u deze LMRA wilt verwijderen?")) {
       setLmras(prev => prev.filter(l => l.id !== id));
     }
   };
@@ -401,11 +409,8 @@ const LMRAView: React.FC<LMRAViewProps> = ({ lmras, setLmras, addLMRA, onUpdateL
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end items-center gap-2">
-                       <button onClick={() => handleCopy(l)} className="bg-slate-50 text-slate-400 p-3 rounded-2xl hover:bg-orange-500 hover:text-white transition-all shadow-sm" title="Kopiëren">📋</button>
-                       {l.status === LMRAStatus.PENDING_SIGNATURE && (
-                         <button onClick={() => setViewingLMRAId(l.id)} className="bg-orange-50 text-orange-500 p-3 rounded-2xl hover:bg-orange-500 hover:text-white transition-all shadow-sm" title="Handtekeningen aanvullen">✍️</button>
-                       )}
-                       <button onClick={() => setViewingLMRAId(l.id)} className="bg-slate-50 text-slate-400 p-3 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shadow-sm" title="Bekijken">👁️</button>
+                       <button onClick={() => handleCopy(l)} className="bg-slate-100 text-slate-400 p-3 rounded-2xl hover:bg-orange-500 hover:text-white transition-all shadow-sm" title="Kopiëren">📋</button>
+                       <button onClick={() => setViewingLMRAId(l.id)} className="bg-slate-100 text-slate-400 p-3 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shadow-sm" title="Bekijken">👁️</button>
                        {canManage && (
                          <button onClick={() => handleDelete(l.id)} className="bg-red-50 text-red-500 p-3 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="Verwijderen">🗑️</button>
                        )}
